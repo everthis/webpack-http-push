@@ -1,0 +1,28 @@
+{
+  "name": "webpack-http-push",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/everthis/webpack-http-push.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/everthis/webpack-http-push/issues"
+  },
+  "homepage": "https://github.com/everthis/webpack-http-push#readme",
+  "dependencies": {
+    "chalk": "^4.1.0",
+    "formidable": "^1.2.2",
+    "log-util": "^2.3.0",
+    "mkdirp": "^1.0.4",
+    "request": "^2.88.2",
+    "underscore": "^1.10.2"
+  }
+}
