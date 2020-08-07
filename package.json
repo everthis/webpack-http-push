@@ -18,7 +18,9 @@
   },
   "homepage": "https://github.com/everthis/webpack-http-push#readme",
   "dependencies": {
+    "aws-sdk": "^2.728.0",
     "chalk": "^4.1.0",
+    "cli-progress": "^3.8.2",
     "formidable": "^1.2.2",
     "log-util": "^2.3.0",
     "mkdirp": "^1.0.4",
