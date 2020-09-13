@@ -14,6 +14,33 @@ class AWSDeployPlugin {
       region: options.region,
     }
     this.s3 = new AWS.S3(config)
+    this.cloudfront = new AWS.CloudFront({
+      apiVersion: '2020-05-31',
+      accessKeyId: options.accessKeyID,
+      secretAccessKey: options.secretAccessKey,
+    });
+  }
+  invalidateCache(arr, cb = () => {}) {
+    const items = arr.map(fn => {
+      if(!fn.startsWith('/')) fn = '/' + fn
+      return fn
+    })
+    const params = {
+      DistributionId: this.opts.cloudFrontDistributionID,
+      InvalidationBatch: {
+        CallerReference: Math.random().toString(36).substring(11),
+        Paths: {
+          Quantity: items.length,
+          Items: items,
+        }
+      }
+    };
+    this.cloudfront.createInvalidation(params, function(err, data) {
+      if (err) console.log(err, err.stack); 
+      else {
+        cb();
+      }
+    });
   }
   upload(fp, key, content, cb) {
     const fileSize = v => {
@@ -70,6 +97,15 @@ class AWSDeployPlugin {
             })
           })
         }
+        p = p.then(() => {
+          return new Promise((resolve, reject) => {
+            const arr = keys.map(k => {
+              const subpath = path.basename(k)
+              return this.filePathMap.get(subpath).split(this.opts.assetPathPrefix)[1]
+            })
+            this.invalidateCache(arr, resolve)
+          })
+        })
         p.then(() => callback());
       }
     );
