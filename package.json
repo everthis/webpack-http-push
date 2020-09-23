@@ -23,6 +23,7 @@
     "cli-progress": "^3.8.2",
     "formidable": "^1.2.2",
     "log-util": "^2.3.0",
+    "mime-types": "^2.1.27",
     "mkdirp": "^1.0.4",
     "request": "^2.88.2",
     "underscore": "^1.10.2"

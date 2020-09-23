@@ -1,6 +1,15 @@
 const AWS = require("aws-sdk")
 const path = require("path")
 const cliProgress = require("cli-progress")
+const cliProgressFormatter = require('cli-progress/lib/formatter')
+const mime = require('mime-types')
+
+function formatter(paramsOverride) {
+  return function(options, params, payload) {
+    const p = Object.assign({}, params, paramsOverride)
+    return cliProgressFormatter(options, p, payload)
+  }
+}
 
 class AWSDeployPlugin {
   constructor(options = {}){
@@ -55,6 +64,7 @@ class AWSDeployPlugin {
       Body: content,
       Bucket: this.opts.bucket,
       Key: k,
+      ContentType: mime.lookup(k),
     }
     const progressBar = new cliProgress.SingleBar(
       {
@@ -74,6 +84,10 @@ class AWSDeployPlugin {
     })
   }
   apply(compiler) {
+    compiler.hooks.watchClose.tap('AWSDeployPlugin', (stats, callback) => {
+      console.log('stats ok')
+      callback()
+    });
     compiler.hooks.afterEmit.tapAsync(
       'AWSDeployPlugin',
       (compilation, callback) => {
