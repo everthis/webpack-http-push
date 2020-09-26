@@ -4,6 +4,7 @@ const cliProgress = require("cli-progress")
 const cliProgressFormatter = require('cli-progress/lib/formatter')
 const mime = require('mime-types')
 
+// stopTime, startTime
 function formatter(paramsOverride) {
   return function(options, params, payload) {
     const p = Object.assign({}, params, paramsOverride)
@@ -51,7 +52,7 @@ class AWSDeployPlugin {
       }
     });
   }
-  upload(fp, key, content, cb) {
+  upload(fp, key, content, cb = () => {}) {
     const fileSize = v => {
       return Buffer.byteLength(v)
     }
@@ -84,13 +85,21 @@ class AWSDeployPlugin {
     })
   }
   apply(compiler) {
-    compiler.hooks.watchClose.tap('AWSDeployPlugin', (stats, callback) => {
-      console.log('stats ok')
-      callback()
+    compiler.hooks.watchClose.tap('AWSDeployPlugin', (stats) => {
+      console.log('Bye!')
+    });
+    compiler.hooks.done.tap('AWSDeployPlugin', () => {
+      console.log('done !!!')
+    });
+    // const logger = compiler.getInfrastructureLogger('AWSDeployPlugin');
+    compiler.hooks.compilation.tap('AWSDeployPlugin', compilation => {
+      const logger = compilation.getLogger('AWSDeployPlugin');
+      logger.info('log from compilation');
     });
     compiler.hooks.afterEmit.tapAsync(
       'AWSDeployPlugin',
       (compilation, callback) => {
+        console.log('afterEmit');
         const assets = compilation.assets
         const keys = Object.keys(assets)
         for(let i = 0, len = keys.length; i < len; i++) {
@@ -101,26 +110,34 @@ class AWSDeployPlugin {
             this.filePathMap.set(subpath, item.existsAt)
           }
         }
-        let p = Promise.resolve()
-        for(let i = 0, len = keys.length; i < len; i++) {
-          const filename = keys[i]
-          const subpath = path.basename(filename)
+        if(this.opts.parallel) {
+          for(let i = 0, len = keys.length; i < len; i++) {
+            const filename = keys[i]
+            const subpath = path.basename(filename)
+            this.upload(filename, subpath, this.fileContentMap.get(subpath))
+          }
+        } else {
+          let p = Promise.resolve()
+          for(let i = 0, len = keys.length; i < len; i++) {
+            const filename = keys[i]
+            const subpath = path.basename(filename)
+            p = p.then(() => {
+              return new Promise((resolve, reject)=> {
+                this.upload(filename, subpath, this.fileContentMap.get(subpath), resolve)
+              })
+            })
+          }
           p = p.then(() => {
-            return new Promise((resolve, reject)=> {
-              this.upload(filename, subpath, this.fileContentMap.get(subpath), resolve)
+            return new Promise((resolve, reject) => {
+              const arr = keys.map(k => {
+                const subpath = path.basename(k)
+                return this.filePathMap.get(subpath).split(this.opts.assetPathPrefix)[1]
+              })
+              this.invalidateCache(arr, resolve)
             })
           })
+          p.then(() => callback());
         }
-        p = p.then(() => {
-          return new Promise((resolve, reject) => {
-            const arr = keys.map(k => {
-              const subpath = path.basename(k)
-              return this.filePathMap.get(subpath).split(this.opts.assetPathPrefix)[1]
-            })
-            this.invalidateCache(arr, resolve)
-          })
-        })
-        p.then(() => callback());
       }
     );
     compiler.hooks.assetEmitted.tapAsync(
